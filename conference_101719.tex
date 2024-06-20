@@ -1,0 +1,84 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+    
+
+\begin{document}
+
+\title{Personalized phenotype encoding and prediction of pathological development from cross-sectional images.\\
+\thanks{Identify applicable funding agency here. If none, delete this.}
+}
+
+\author{\IEEEauthorblockN{1\textsuperscript{st} Connor Elkhill}
+\IEEEauthorblockA{\textit{Department of Biostatistics and Informatics} \\
+\textit{Colorado School of Public Health}\\
+Aurora, CO \\
+connor.2.elkhill@cuanschutz.edu}
+\and
+\IEEEauthorblockN{2\textsuperscript{nd} Ines A. Cruz-Guerrero, PhD}
+\IEEEauthorblockA{\textit{Department of Biostatistics and Informatics} \\
+\textit{Colorado School of Public Health}\\
+Aurora, CO \\
+email address or ORCID}
+\and
+\IEEEauthorblockN{3\textsuperscript{rd} Jiawei Liu, MS}
+\IEEEauthorblockA{\textit{Department of Biostatistics and Informatics} \\
+\textit{Colorado School of Public Health}\\
+Aurora, CO \\
+email address or ORCID}
+\and
+\IEEEauthorblockN{4\textsuperscript{th} Marius George Linguraru, DPhil}
+\IEEEauthorblockA{\textit{Sheikh Zayed Institute for Pediatric Surgical Innovation} \\
+\textit{Children's National Hospital}\\
+Washington, DC\\
+email address or ORCID}
+\and
+\IEEEauthorblockN{5\textsuperscript{th} Allyson Alexander, MD}
+\IEEEauthorblockA{\textit{Department of Pediatric Neurosurgery} \\
+\textit{Children's Hospital Colorado}\\
+Aurora, CO \\
+email address or ORCID}
+\and
+\IEEEauthorblockN{6\textsuperscript{th} Brooke French, MD}
+\IEEEauthorblockA{\textit{Department of Pediatric Plastic and Reconstructive Surgery} \\
+\textit{Children's Hospital Colorado}\\
+Aurora, CO\\
+email address or ORCID}
+\and
+\IEEEauthorblockN{7\textsuperscript{th} Antonio R. Porras, PhD}
+\IEEEauthorblockA{\textit{Department of Biostatistics and Informatics} \\
+\textit{Colorado School of Public Health}\\
+Aurora, CO \\
+email address or ORCID}
+}
+
+\maketitle
+
+\begin{abstract}
+The prediction of anatomical development plays a crucial role in pediatric treatment selection and planning. We present a novel deep learning architecture to make personalized predictions of pediatric normative and pathologic head development using only cross-sectional data. We designed growth predictor that learns the anatomical effects of age and sex in the presence of pathology and a novel phenotype encoder that utilizes domain adversarial training to create age- and sex-independent representations of patient phenotypes. We combined these modules to instantiate patient phenotypes to specific ages for personalized anatomical predictions conditioned to cranial pathology. We trained our models using standardized head segmentations generated from cross-sectional CT images and 3D photograms and evaluated model performance using an independent longitudinal dataset of normative subjects and children with craniosynostosis. The model achieved a head surface growth prediction error of 4.93 ± 2.29 mm and a volumetric error 0.17 ± 0.11 L in patients with cranial pathology, and 4.61 ± 3.28 mm and 0.27 ± 0.19 L for normative subjects, demonstrating state-of-the-art accuracy. Our method is the first to create age- and sex-agnostic phenotypical representations and enable personalized predictions of pathological development from only cross-sectional data.
+\end{abstract}
+
+\begin{IEEEkeywords}
+predictive growth, craniosynostosis, generative adversarial network, domain adversarial training, pediatric pathological development
+\end{IEEEkeywords}
+
+\section{Introduction}
+Children undergo a rapid cranial and brain growth during the first few years of life that is crucial for their cognitive development \cite{Cao2017Developmental}. Craniosynostosis is a condition where one or more of the cranial sutures fuse prematurely and constrain cranial and brain development, often requiring surgical intervention~\cite{Mathijssen2021Updated}. However, current clinical standards to evaluate developmental anomalies rely on normative growth charts of simple metrics such as head circumference, cephalic index, or intracranial volume~\cite{Likus2014Cephalic, Meyer-Marcotty2014Three-dimensional, Rollins2010United} that cannot characterize or predict development of patients with pathology ~\cite{Breakey2018Intracranial, Sgouros2005Skull, Thakkar2018Observer}.
+
+Several methods to predict cranial growth without longitudinal training datasets have recently been proposed. Liu et al~\cite{Liu2022Data-driven} created a normative reference of cranial growth based on age and sex using principal component analysis and temporal regression. However, this method is not personalized and only identified average growth trajectories in the normative pediatric population. Porras et al~\cite{Porras2022Predictive} presented a personalized predictive model of cranial growth, but the optimization was not computationally feasible for large datasets. Recently, Liu et al~\cite{Liu2023Data-driven} presented a data-driven model of cranial suture growth trained only with cross-sectional data, and demonstrated state-of-the-art accuracy to predict pathologic development in patients with craniosynostosis. However, this method required the observation of the cranial sutures from computed tomography (CT) images, an image modality that requires harmful radiation exposure~\cite{Schweitzer2012Avoiding}. In a different domain, Xia et al~\cite{Xia2021Learning} utilized generative adversarial networks to learn subject-specific trajectories from a cross-sectional dataset of magnetic resonance (MR) images to predict changes in the brain morphology of patients with Alzheimer’s disease. However, their paired training scheme prevented significant anatomical temporal changes, which provided good results in adults but is not realistic in children~\cite{Hasegawa2018Developmental}.
+
+As an alternative to CT imaging, 3D photogrammetry has become a popular radiation-free and low-cost clinical alternative to evaluate pediatric cranial malformations~\cite{Porras2019Quantification, Abdel-Alim2021Three-Dimensional}. However, it can only image the head surface and hence, prior personalized  methods~\cite{Liu2023Data-driven} relying on the identification of the cranial sutures are not feasible. We present a novel deep learning architecture designed to make personalized predictions of normative and pathologic development trained using head surface information from both cross-sectional CT images and 3D photograms, which enables radiation-free prediction of pediatric development in a clinical setting. We propose a temporal growth predictor based on a conditional generative adversarial network that learns age- and sex -specific anatomical distributions with or without the presence of pathology in the pediatric population. We also present a novel phenotype encoder that utilizes domain adversarial training, avoiding the stringent statistical assumptions of prior works, to generate age- and sex-agnostic latent representations of patient phenotypes. These modules work collaboratively to generate personalized predictions of anatomical development by instantiating patient-specific phenotype representations to specific ages conditioned to the presence of pathology. The architecture was trained using only cross-sectional data from normative children and patients with craniosynostosis under the age of 10 years and was evaluated using an independent longitudinal dataset.
+\section{Materials and Methods}
+\subsection{Data}
+After IRB approval at XXXXXXXXXXXXXXXXX (\#XXXXXXXXXXXXXXXX) we collected two independent retrospective datasets: (1) a cross-sectional dataset used for model training; and (2) a longitudinal dataset used for performance evaluation. \textbf{Dataset 1} includes 2,672 cross-sectional CT images (N=2,262) and 3D photograms (N=410) of two patient populations: 2,020 normative subjects without cranial pathology (1081 male, 939 female, age $3.14 \pm 3.05$ years, range 0-10 years) and 652 patients with craniosynostosis (384 male, 268 female, age $0.64 \pm 1.04$ years, range 0-8.8 years). Dataset 2 includes two groups of longitudinal images: 61 CT image pairs from 51 normative subjects (28 male, 23 female) with average age at first image $2.24 \pm 2.22$ years and age at second image $3.55 \pm 2.71$ years (five subjects had two image pairs); and 75 pairs of 3D photograms from 75 patients with craniosynostosis (58 male, 17 female), with age of $0.61 \pm 1.07$ years at the first image and $0.85 \pm 1.18$ years at the second image.
+\bibliographystyle{ieeetr}
+\bibliography{ref-extracts}
+\end{document}
